@@ -1,0 +1,102 @@
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>WebRTC Demo</title>
+    <style>
+        video {
+            width: 640px;
+            height: 320px;
+        }
+    </style>
+</head>
+<body>
+<script src="./peerjs.min.js"></script>
+<script src="./index.js"></script>
+
+<h1>只能在localhost或https环境中运行</h1>
+<p id="peer-id"></p>
+<video id="localView" controls autoplay></video>
+<video id="remoteView" controls autoplay></video>
+<br>
+
+<button onclick="startAnchor()">初始化为主播端</button>
+<button onclick="startClient()">初始化为观众端</button>
+<button onclick="openCamera()">开启摄像头</button>
+<button onclick="shareScreen()">共享桌面</button>
+<br>
+<label>节点id<input id="peer-id-input" type="text"></label>
+<button onclick="connectPeer(false)">建立文字连接</button>
+<button onclick="connectPeer(true)">建立视频连接</button>
+<br>
+<label>发送文字<input id="msg-input" type="text"></label>
+<button onclick="sendText()">发送</button>
+
+<ul id="msg"></ul>
+</body>
+</html>
+<script>
+    // import Peer from 'peerjs';
+    const ANCHOR_ID = 'ANCHOR_ID'
+    let peer
+
+    document.getElementById('peer-id-input').value = ANCHOR_ID
+
+    async function startAnchor() {
+        peer = new p2pNode({
+            peerId: ANCHOR_ID,
+            localVideoDom: document.getElementById('localView'),
+            remoteVideoDom: document.getElementById('remoteView'),
+        })
+        document.getElementById('peer-id').innerText = `当前节点id：${peer.peerId}`
+        peer.start()
+    }
+
+    async function startClient() {
+        peer = new p2pNode({
+            peerId: String(Date.now()) + Math.floor(Math.random() * 1000),
+            localVideoDom: document.getElementById('localView'),
+            remoteVideoDom: document.getElementById('remoteView'),
+        })
+        document.getElementById('peer-id').innerText = `当前节点id：${peer.peerId}`
+        peer.start()
+    }
+
+    async function openCamera() {
+        if (!peer) {
+            alert('还未初始化')
+            return
+        }
+        await peer.openCamera()
+    }
+
+    async function shareScreen() {
+        if (!peer) {
+            alert('还未初始化')
+            return
+        }
+        await peer.openScreen()
+    }
+
+    function connectPeer(isVideoType) {
+        if (!peer) {
+            alert('还未初始化')
+            return
+        }
+        const peerId = document.getElementById('peer-id-input').value
+        if (isVideoType) {
+            peer.call(peerId)
+        } else {
+            peer.connect(peerId)
+        }
+    }
+
+    function sendText() {
+        if (!peer) {
+            alert('还未初始化')
+            return
+        }
+        const peerId = document.getElementById('peer-id-input').value
+        const msg = document.getElementById('msg-input').value
+        peer.sendText(peerId, msg)
+    }
+</script>
