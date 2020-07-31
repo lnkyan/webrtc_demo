@@ -1,10 +1,12 @@
 // import Peer from 'peerjs'
+// doc https://peerjs.com/docs.html#api
 
 class p2pNode {
     constructor(config) {
         this.peerId = config.peerId
         this.localVideoDom = config.localVideoDom
         this.remoteVideoDom = config.remoteVideoDom
+        this.dataListener = config.onReceiveData
 
         // 连接列表，key是节点id，value是{connection, peer, call}对象
         this.connections = {}
@@ -49,7 +51,11 @@ class p2pNode {
             }
             this.connections[peerId].connection = connection
         });
-        connection.on('data', data => this.onReceiveData(data));
+        connection.on('data', data => {
+            if (this.dataListener) {
+                this.dataListener(data)
+            }
+        });
     }
 
     sendText(peerId, msg) {
@@ -87,7 +93,26 @@ class p2pNode {
             }
             console.log('开启摄像头')
         } catch (error) {
-            console.error('摄像头开启失败', error);
+            console.error('摄像头开启失败', error.name, error);
+            switch (error.name) {
+                case 'NotAllowedError': // 用户禁用权限（chrome）
+                case 'PermissionDeniedError':
+                case 'NotFoundError': // 用户禁用权限（QQ浏览器），禁用设备（所有浏览器）
+                case 'DevicesNotFoundError':
+                    alert('没有安装摄像头或摄像头权限已被禁止')
+                    break
+                case 'NotReadableError':
+                case 'TrackStartError':
+                    alert('摄像头被其他程序占用，请关闭占用的程序')
+                    break
+                case 'OverconstrainedError':
+                case 'ConstraintNotSatisfiedErrror':
+                    alert('摄像头不支持的分辨率')
+                    break
+                case 'TypeError':
+                    alert('摄像头开启参数配置错误')
+                    break
+            }
         }
     }
 
@@ -118,12 +143,5 @@ class p2pNode {
         } else {
             call.answer()
         }
-    }
-
-    onReceiveData(data) {
-        // TODO
-        const li = document.createElement('li')
-        li.innerText = data
-        document.getElementById('msg').appendChild(li)
     }
 }

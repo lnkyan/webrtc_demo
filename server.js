@@ -16,7 +16,12 @@ const server = app.listen(8088, (error) => {
     }
 })
 
-const peerServer = ExpressPeerServer(server, {path: '/live'})
+const peerServer = ExpressPeerServer(server, {
+    path: '/live',
+    allow_discovery: true,
+    generateClientId: () => (Date.now() * 1000 + Math.floor(Math.random() * 1000)).toString(36),
+})
+// API doc: https://github.com/peers/peerjs-server/blob/master/src/api/README.md
 app.use(peerServer);
 
 app.use((req, res) => {

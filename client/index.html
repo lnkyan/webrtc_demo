@@ -3,9 +3,20 @@
     <meta charset="utf-8">
     <title>WebRTC Demo</title>
     <style>
-        video {
+        .video-wrapper {
+            position: relative;
             width: 640px;
-            height: 320px;
+        }
+
+        #remoteView {
+            width: 100%;
+        }
+
+        #localView {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 25%;
         }
     </style>
 </head>
@@ -15,12 +26,13 @@
 
 <h1>只能在localhost或https环境中运行</h1>
 <p id="peer-id"></p>
-<video id="localView" controls autoplay></video>
-<video id="remoteView" controls autoplay></video>
+<div class="video-wrapper">
+    <video id="remoteView" autoplay></video>
+    <video id="localView" autoplay></video>
+</div>
 <br>
 
-<button onclick="startAnchor()">初始化为主播端</button>
-<button onclick="startClient()">初始化为观众端</button>
+<button onclick="initPeer()">初始化节点</button>
 <button onclick="openCamera()">开启摄像头</button>
 <button onclick="shareScreen()">共享桌面</button>
 <br>
@@ -31,33 +43,24 @@
 <label>发送文字<input id="msg-input" type="text"></label>
 <button onclick="sendText()">发送</button>
 
+<button onclick="getPeerList()">获取节点列表</button>
+
 <ul id="msg"></ul>
 </body>
 </html>
 <script>
     // import Peer from 'peerjs';
-    const ANCHOR_ID = 'ANCHOR_ID'
     let peer
 
-    document.getElementById('peer-id-input').value = ANCHOR_ID
-
-    async function startAnchor() {
+    async function initPeer() {
+        const peerId = await createPeerId()
         peer = new p2pNode({
-            peerId: ANCHOR_ID,
+            peerId,
             localVideoDom: document.getElementById('localView'),
             remoteVideoDom: document.getElementById('remoteView'),
+            onReceiveData: msg => appendMsg(`收到: ${msg}`),
         })
-        document.getElementById('peer-id').innerText = `当前节点id：${peer.peerId}`
-        peer.start()
-    }
-
-    async function startClient() {
-        peer = new p2pNode({
-            peerId: String(Date.now()) + Math.floor(Math.random() * 1000),
-            localVideoDom: document.getElementById('localView'),
-            remoteVideoDom: document.getElementById('remoteView'),
-        })
-        document.getElementById('peer-id').innerText = `当前节点id：${peer.peerId}`
+        document.getElementById('peer-id').innerText = `当前节点id: ${peer.peerId}`
         peer.start()
     }
 
@@ -98,5 +101,24 @@
         const peerId = document.getElementById('peer-id-input').value
         const msg = document.getElementById('msg-input').value
         peer.sendText(peerId, msg)
+        appendMsg(`发送: ${msg}`)
+    }
+
+    async function createPeerId() {
+        const resp = await fetch('/live/no_used_param/id')
+        return resp.text()
+    }
+
+    async function getPeerList() {
+        const resp = await fetch('/live/no_used_param/peers')
+        const list = await resp.json()
+        appendMsg(`node list: ${JSON.stringify(list)}`)
+        return list
+    }
+
+    function appendMsg(msg) {
+        const li = document.createElement('li')
+        li.innerText = msg
+        document.getElementById('msg').appendChild(li)
     }
 </script>
